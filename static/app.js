@@ -449,9 +449,10 @@ separateBtn.addEventListener("click", () => {
     sepUploadSection.classList.add("hidden");
     sepProgressSection.classList.remove("hidden");
     sepCompleteSection.classList.add("hidden");
+    const outFmt = (selectedSepFormat === "midi" || isNaN(parseInt(selectedSepFormat))) ? 1 : parseInt(selectedSepFormat);
     socket.emit("start_separation", {
         filename: uploadedFile,
-        output_format: parseInt(selectedSepFormat),
+        output_format: outFmt,
         category: selectedCategory,
         sub_category: selectedSubCategory || undefined,
         text_prompt: textPrompt,
