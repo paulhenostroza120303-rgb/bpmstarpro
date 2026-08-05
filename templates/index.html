@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPMSTART DOWNLOADER</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="24" r="24" fill="url(#grad1)"/>
+                    <polygon points="19,14 35,24 19,34" fill="white"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ff4444"/>
+                            <stop offset="100%" style="stop-color:#cc0000"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h1>BPM<span>START</span></h1>
+            </div>
+            <p class="subtitle">Descarga y separa musica en alta calidad</p>
+            <button id="settings-btn" class="icon-btn settings-btn" title="Ajustes">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </header>
+
+        <div id="update-banner" class="hidden" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 12px 18px; border-radius: var(--radius-sm); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: white;">
+            <div>
+                <strong id="update-banner-title">🚀 ¡Nueva actualización disponible!</strong>
+                <p id="update-banner-desc" style="font-size: 13px; opacity: 0.9; margin: 2px 0 0 0;"></p>
+            </div>
+            <button id="update-action-btn" style="background: white; color: #1d4ed8; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                Actualizar ahora
+            </button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="download">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Descargar
+            </button>
+            <button class="tab" data-tab="separate">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M8 12h8"/>
+                    <path d="M12 8v8"/>
+                </svg>
+                Separar
+            </button>
+        </div>
+
+        <!-- ======================== TAB: DESCARGAR ======================== -->
+        <div class="tab-content active" id="tab-download">
+            <div class="card">
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <input type="text" id="url-input" placeholder="Pega el enlace de YouTube aqui..." autocomplete="off" spellcheck="false">
+                        <button id="paste-btn" class="icon-btn" title="Pegar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="analyze-btn" class="btn-primary">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <span>Analizar</span>
+                    </button>
+                </div>
+
+                <div id="status-msg" class="status-msg hidden"></div>
+
+                <div id="video-info" class="video-info hidden">
+                    <div class="video-preview">
+                        <img id="thumb" src="" alt="thumbnail">
+                        <div class="video-meta">
+                            <h3 id="v-title"></h3>
+                            <p id="v-uploader"></p>
+                            <span id="v-duration" class="badge"></span>
+                        </div>
+                    </div>
+
+                    <div class="format-section">
+                        <h4>Formato</h4>
+                        <div class="format-grid">
+                            <button class="format-btn active" data-format="mp3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                                </svg>
+                                <span>MP3</span>
+                                <small>Audio</small>
+                            </button>
+                            <button class="format-btn" data-format="mp4">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                                    <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
+                                    <line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/>
+                                    <line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>
+                                    <line x1="17" y1="17" x2="22" y2="17"/>
+                                </svg>
+                                <span>MP4</span>
+                                <small>Video + audio</small>
+                            </button>
+                        </div>
+
+                        <h4>Calidad</h4>
+                        <div class="quality-grid">
+                            <button class="quality-btn active" data-quality="best">
+                                <span class="q-icon">HQ</span>
+                                <span>Alta</span>
+                            </button>
+                            <button class="quality-btn" data-quality="medium">
+                                <span class="q-icon">MQ</span>
+                                <span>Media</span>
+                            </button>
+                            <button class="quality-btn" data-quality="low">
+                                <span class="q-icon">LQ</span>
+                                <span>Baja</span>
+                            </button>
+                        </div>
+
+                        <button id="download-btn" class="btn-download">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <span>Descargar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="progress-section" class="hidden">
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span id="progress-status">Descargando...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="progress-bar" class="progress-bar-fill"></div>
+                        </div>
+                        <div class="progress-footer">
+                            <span id="progress-speed">-</span>
+                            <span id="progress-eta">ETA: --:--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="complete-section" class="hidden">
+                    <div class="complete-msg">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="16 8 10.5 13.5 8 11"/>
+                        </svg>
+                        <h3>Descarga completa</h3>
+                        <p id="complete-filename"></p>
+                        <a id="save-btn" class="btn-save" href="#" download>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Guardar archivo
+                        </a>
+                        <button id="new-download-btn" class="btn-secondary">Nueva descarga</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== TAB: SEPARAR ======================== -->
+        <div class="tab-content" id="tab-separate">
+            <div class="card">
+                <div id="sep-upload-section">
+                    <div class="upload-zone" id="upload-zone">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-icon">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Arrastra un archivo de audio aqui</p>
+                        <p class="upload-sub">o haz clic para seleccionar</p>
+                        <p class="upload-formats">MP3, FLAC, WAV, M4A, OGG</p>
+                        <input type="file" id="file-input" accept=".mp3,.flac,.wav,.m4a,.ogg,.aac,.wma" hidden>
+                    </div>
+
+                    <div id="file-selected" class="file-selected hidden">
+                        <div class="file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2">
+                                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                            </svg>
+                            <div>
+                                <p id="selected-filename"></p>
+                                <small id="selected-filesize"></small>
+                            </div>
+                        </div>
+                        <button id="remove-file-btn" class="icon-btn" title="Quitar archivo">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="sep-options">
+                        <h4>Tipo de separacion</h4>
+                        <div class="category-grid" id="category-grid">
+                            <!-- Se llena dinamicamente desde /api/categories -->
+                        </div>
+                        <div class="category-sub-options hidden" id="category-sub-container">
+                            <!-- Sub-modelos se renderizan aqui al hacer clic -->
+                        <div id="text-prompt-container" class="hidden" style="margin-top:12px;">
+                            <h4>Texto / Indicacion (Prompt)</h4>
+                            <input type="text" id="text-prompt-input" placeholder="Escribe el texto para la voz IA..." style="width:100%; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-size:14px; margin-bottom:12px;" autocomplete="off">
+                        </div>
+
+                        <h4>Formato de salida</h4>
+                        <div class="format-grid sep-format-grid">
+                            <button class="format-btn sep-fmt active" data-fmt="1">
+                                <span>WAV</span>
+                                <small>16 bit</small>
+                            </button>
+                            <button class="format-btn sep-fmt" data-fmt="2">
+                                <span>FLAC</span>
+                                <small>16 bit</small>
+                            </button>
+                            <button class="format-btn sep-fmt" data-fmt="0">
+                                <span>MP3</span>
+                                <small>320 kbps</small>
+                            </button>
+                        </div>
+
+                        <div class="model-info" id="model-info-box">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>Modelo: <strong>BpmStart Pro</strong> &mdash; <span id="model-desc">Vocal + Instrumental</span></span>
+                        </div>
+
+                        <button id="separate-btn" class="btn-download" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M8 12h8"/>
+                                <path d="M12 8v8"/>
+                            </svg>
+                            <span>Separar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="sep-progress-section" class="hidden">
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span id="sep-progress-status">Procesando...</span>
+                            <span id="sep-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="sep-progress-bar" class="progress-bar-fill sep-bar"></div>
+                        </div>
+                        <p id="sep-progress-message" class="sep-progress-msg">Iniciando...</p>
+                    </div>
+                </div>
+
+                <div id="sep-complete-section" class="hidden">
+                    <div class="complete-msg">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="16 8 10.5 13.5 8 11"/>
+                        </svg>
+                        <h3>Separacion completa</h3>
+                        <p id="sep-complete-msg">Stems listos para descargar</p>
+
+                        <div class="stems-grid" id="stems-grid"></div>
+
+                        <button id="new-separation-btn" class="btn-secondary" style="margin-top:20px">Nueva separacion</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>BPMSTART DOWNLOADER &mdash; Powered by BpmStart Pro</p>
+        </footer>
+    </div>
+
+    <!-- ======================== MODAL: AJUSTES ======================== -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Ajustes</h3>
+                <button id="settings-close-btn" class="icon-btn" title="Cerrar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label for="settings-codigo">Codigo BPMStartPRO</label>
+                <p class="settings-hint">Ingresa tu codigo de BPMStartPRO para usar la separacion de audio. Se guarda en este equipo.</p>
+                <input type="password" id="settings-codigo" placeholder="Pega tu codigo aqui..." autocomplete="off" spellcheck="false">
+                <p id="settings-status" class="settings-status hidden"></p>
+                <div class="settings-actions">
+                    <button id="settings-save-btn" class="btn-primary">Guardar</button>
+                    <button id="settings-delete-btn" class="btn-danger">Quitar codigo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/wavesurfer.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

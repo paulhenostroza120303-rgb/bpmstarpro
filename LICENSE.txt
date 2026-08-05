@@ -1,0 +1,17 @@
+BPMStart Pro - Acuerdo de Licencia
+
+Copyright (c) 2026 BPMStart
+
+Este software se distribuye "tal cual", sin garantia de ningun tipo.
+
+Uso:
+- Este software utiliza la API publica de MVSEP para separacion de audio.
+- Las descargas de YouTube son para uso personal.
+- Se aplican limites de uso de la API de MVSEP.
+
+Privacidad:
+- Las credenciales de login se almacenan localmente en su equipo.
+- No se envian datos personales a servidores externos.
+- Los archivos de audio se procesan temporalmente en la API de MVSEP.
+
+By using this software, you agree to these terms.
