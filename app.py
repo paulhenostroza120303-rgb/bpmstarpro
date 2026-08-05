@@ -1086,6 +1086,8 @@ def handle_separation(data):
                         download_name = file_info.get("download", "")
                         real_url_ext = Path(download_name).suffix.lstrip(".").lower() if download_name else Path(stem_url.split("?")[0]).suffix.lstrip(".").lower()
                         current_ext = real_url_ext if real_url_ext in ("mid", "midi", "txt", "zip") else file_ext
+                        if category == "midi":
+                            current_ext = "mid"
 
                         stem_type = file_info.get("type") or ""
                         label_esp = SPANISH_LABELS.get(stem_type, stem_type)
@@ -1111,7 +1113,7 @@ def handle_separation(data):
                             stems.append({
                                 "filename": f"{folder_name}/{new_name}",
                                 "label": label,
-                                "ext": file_ext,
+                                "ext": current_ext,
                             })
                         except Exception as e:
                             print(f"Error descargando stem {label}: {e}")
