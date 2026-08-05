@@ -668,10 +668,27 @@ def handle_download(data):
 
                 if process.returncode == 0:
                     downloaded_file = None
+                    target_ext = f".{fmt.lower()}"
+                    
+                    # 1. First look for exact title match with expected format extension
                     for f in DOWNLOADS_DIR.iterdir():
-                        if f.stem == safe_title and f.is_file():
+                        if f.is_file() and f.stem == safe_title and f.suffix.lower() == target_ext:
                             downloaded_file = f.name
                             break
+
+                    # 2. Fallback: match title with any extension
+                    if not downloaded_file:
+                        for f in DOWNLOADS_DIR.iterdir():
+                            if f.is_file() and f.stem == safe_title:
+                                downloaded_file = f.name
+                                break
+
+                    # 3. Fallback: get most recently modified file in DOWNLOADS_DIR
+                    if not downloaded_file:
+                        files = [f for f in DOWNLOADS_DIR.iterdir() if f.is_file()]
+                        if files:
+                            files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                            downloaded_file = files[0].name
 
                     if downloaded_file:
                         ext = Path(downloaded_file).suffix.lstrip(".")
