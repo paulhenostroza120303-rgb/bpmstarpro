@@ -299,6 +299,7 @@ function renderCategoryGrid() {
             selectedCategory = key;
             renderSubOptions(key, cat.sub);
             checkPromptVisibility();
+            checkMidiFormatVisibility();
         });
     }
 
@@ -310,6 +311,29 @@ function renderCategoryGrid() {
             firstCard.classList.add("active");
             selectedCategory = firstCatKey;
             renderSubOptions(firstCatKey, categoriesData[firstCatKey].sub);
+            checkMidiFormatVisibility();
+        }
+    }
+}
+
+function checkMidiFormatVisibility() {
+    const midiBtn = document.getElementById("midi-fmt-btn");
+    if (!midiBtn) return;
+    if (selectedCategory === "midi") {
+        midiBtn.classList.remove("hidden");
+        // Auto select MIDI format button
+        document.querySelectorAll(".sep-fmt").forEach((b) => b.classList.remove("active"));
+        midiBtn.classList.add("active");
+        selectedSepFormat = "midi";
+    } else {
+        midiBtn.classList.add("hidden");
+        if (selectedSepFormat === "midi") {
+            const defaultWavBtn = document.querySelector('.sep-fmt[data-fmt="1"]');
+            if (defaultWavBtn) {
+                document.querySelectorAll(".sep-fmt").forEach((b) => b.classList.remove("active"));
+                defaultWavBtn.classList.add("active");
+                selectedSepFormat = "1";
+            }
         }
     }
 }

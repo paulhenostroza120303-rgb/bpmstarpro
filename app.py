@@ -905,7 +905,8 @@ def api_categories():
 @login_required
 def handle_separation(data):
     filename = data.get("filename", "")
-    output_format = data.get("output_format", 1)
+    raw_fmt = data.get("output_format", 1)
+    output_format = 1 if raw_fmt == "midi" else int(raw_fmt)
     category = data.get("category", "vocal")
     sub_category = data.get("sub_category", None)
     text_prompt = data.get("text_prompt", "").strip() or None
