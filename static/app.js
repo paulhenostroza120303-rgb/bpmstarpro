@@ -293,14 +293,25 @@ function renderCategoryGrid() {
             '<div class="category-desc">' + (cat.short || "") + '</div>';
         grid.appendChild(btn);
 
-    btn.addEventListener("click", () => {
-        document.querySelectorAll(".category-card").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        selectedCategory = key;
-        renderSubOptions(key, cat.sub);
-        checkPromptVisibility();
-    });
-}
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".category-card").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            selectedCategory = key;
+            renderSubOptions(key, cat.sub);
+            checkPromptVisibility();
+        });
+    }
+
+    // Auto-select first category (Vocal) by default
+    const firstCatKey = Object.keys(categoriesData)[0];
+    if (firstCatKey) {
+        const firstCard = grid.querySelector('.category-card');
+        if (firstCard) {
+            firstCard.classList.add("active");
+            selectedCategory = firstCatKey;
+            renderSubOptions(firstCatKey, categoriesData[firstCatKey].sub);
+        }
+    }
 }
 
 function checkPromptVisibility() {
