@@ -759,6 +759,7 @@ def bpmstart_create_separation(file_path, sep_type=40, output_format=1, add_opt1
     api_key = get_user_key()
     if not api_key:
         return False, "No hay codigo BPMStartPRO configurado. Abre Ajustes y agrega tu codigo."
+    
     url = "https://mvsep.com/api/separation/create"
 
     send_path = file_path
@@ -781,61 +782,77 @@ def bpmstart_create_separation(file_path, sep_type=40, output_format=1, add_opt1
                 return False, "No se pudo optimizar el audio para BpmStart Pro."
             send_path = temp_path
 
-        with open(send_path, "rb") as f:
-            files = {"audiofile": f}
-            data = {
-                "api_token": api_key,
-                "sep_type": str(sep_type),
-                "output_format": str(output_format),
-                "is_demo": "0",
-            }
-            if text_prompt:
-                # For TTS or text prompt-driven models (add_opt1 or add_opt2 text input)
-                if add_opt1 is None:
-                    data["add_opt1"] = text_prompt
-                elif add_opt2 is None:
-                    data["add_opt2"] = text_prompt
-                else:
-                    data["add_opt3"] = text_prompt
+        last_error = "Error al crear tarea."
+        max_retries = 15
 
-            if add_opt1 is not None and "add_opt1" not in data:
-                data["add_opt1"] = str(add_opt1)
-            if add_opt2 is not None and "add_opt2" not in data:
-                data["add_opt2"] = str(add_opt2)
-            if add_opt3 is not None and "add_opt3" not in data:
-                data["add_opt3"] = str(add_opt3)
+        for attempt in range(max_retries):
+            with open(send_path, "rb") as f:
+                files = {"audiofile": f}
+                data = {
+                    "api_token": api_key,
+                    "sep_type": str(sep_type),
+                    "output_format": str(output_format),
+                    "is_demo": "0",
+                }
+                if text_prompt:
+                    # For TTS or text prompt-driven models (add_opt1 or add_opt2 text input)
+                    if add_opt1 is None:
+                        data["add_opt1"] = text_prompt
+                    elif add_opt2 is None:
+                        data["add_opt2"] = text_prompt
+                    else:
+                        data["add_opt3"] = text_prompt
+
+                if add_opt1 is not None and "add_opt1" not in data:
+                    data["add_opt1"] = str(add_opt1)
+                if add_opt2 is not None and "add_opt2" not in data:
+                    data["add_opt2"] = str(add_opt2)
+                if add_opt3 is not None and "add_opt3" not in data:
+                    data["add_opt3"] = str(add_opt3)
+
+                try:
+                    resp = requests.post(url, files=files, data=data, timeout=600)
+                except requests.exceptions.Timeout:
+                    last_error = "Tiempo de espera agotado al subir a BpmStart Pro. Intenta de nuevo."
+                    time.sleep(5)
+                    continue
+                except requests.exceptions.RequestException as e:
+                    last_error = f"Error de conexion con BpmStart Pro: {str(e)[:150]}"
+                    time.sleep(5)
+                    continue
 
             try:
-                resp = requests.post(url, files=files, data=data, timeout=600)
-            except requests.exceptions.Timeout:
-                return False, "Tiempo de espera agotado al subir a BpmStart Pro. Intenta de nuevo."
-            except requests.exceptions.RequestException as e:
-                return False, f"Error de conexion con BpmStart Pro: {str(e)[:150]}"
-
-        if resp.status_code != 200:
-            body = ""
-            try:
-                body = resp.text[:300]
+                result = resp.json()
             except Exception:
-                pass
-            return False, f"BpmStart Pro respondio HTTP {resp.status_code}: {body}"
+                result = {}
 
-        try:
-            result = resp.json()
-        except Exception:
-            return False, f"Respuesta inesperada del servidor (HTTP {resp.status_code})"
+            if result.get("success"):
+                return True, result["data"]["hash"]
 
-        if result.get("success"):
-            return True, result["data"]["hash"]
-        else:
             errors = result.get("errors")
             if isinstance(errors, list) and errors:
                 msg = errors[0]
             elif isinstance(errors, str):
                 msg = errors
             else:
-                msg = result.get("data", {}).get("message") or result.get("message") or result.get("error") or "Error desconocido"
+                msg = result.get("data", {}).get("message") or result.get("message") or result.get("error") or resp.text[:200] or "Error desconocido"
+
+            # Si el servidor responde que ya hay un archivo procesandose en la cola, esperar y reintentar
+            if "queue" in msg.lower() or "unprocessed" in msg.lower() or resp.status_code == 429:
+                last_error = "Hay una tarea anterior aun procesandose en los servidores de BpmStart Pro. Esperando a que termine..."
+                time.sleep(10)
+                continue
+
+            if resp.status_code == 401:
+                time.sleep(5)
+                continue
+
+            if resp.status_code != 200:
+                return False, f"BpmStart Pro respondio HTTP {resp.status_code}: {msg}"
+
             return False, msg
+
+        return False, "Hay una tarea anterior aun procesandose en el servidor. Por favor espera 1 minuto a que termine e intenta de nuevo."
     finally:
         if temp_path and os.path.exists(temp_path):
             try:
