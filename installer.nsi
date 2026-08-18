@@ -18,11 +18,11 @@ Unicode True
 ; --------------------
 ; Version Info
 ; --------------------
-VIProductVersion "1.0.0.0"
+VIProductVersion "1.0.1.0"
 VIAddVersionKey "ProductName" "BPMStart Pro"
 VIAddVersionKey "FileDescription" "BPMStart Pro - Descarga y separa musica"
 VIAddVersionKey "LegalCopyright" "BPMStart"
-VIAddVersionKey "FileVersion" "1.0.0"
+VIAddVersionKey "FileVersion" "1.0.1"
 
 ; --------------------
 ; MUI Settings
@@ -85,7 +85,7 @@ Section "BPMStart Pro (Principal)" SecMain
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
         "Publisher" "BPMStart"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
-        "DisplayVersion" "1.0.0"
+        "DisplayVersion" "1.0.1"
 
     ; Get installed size
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
