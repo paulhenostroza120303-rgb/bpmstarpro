@@ -40,7 +40,7 @@ def log(msg):
     except Exception:
         pass
 
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 GITHUB_REPO = "paulhenostroza120303-rgb/bpmstarpro"
 
 app = Flask(__name__,
