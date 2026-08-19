@@ -1,0 +1,23 @@
+# Secrets / runtime config
+.bpmstart_key
+.bpmstart_proxy
+cookies.txt
+
+# Runtime user data
+downloads/
+separations/
+webview_data/
+webview_data_*/
+error.log
+
+# Build artifacts
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+BPMStartPro_Setup.exe
+
+# Editors / OS
+.vscode/
+Thumbs.db
