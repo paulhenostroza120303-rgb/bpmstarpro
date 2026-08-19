@@ -40,7 +40,7 @@ def log(msg):
     except Exception:
         pass
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.0"
 GITHUB_REPO = "paulhenostroza120303-rgb/bpmstarpro"
 
 app = Flask(__name__,
@@ -100,7 +100,7 @@ AUTH_FILE = BASE_DIR / ".bpmstart_auth"
 active_downloads = {}
 active_separations = {}
 
-YT_CLIENTS = ["default", "android", "tv", "web_embedded", "ios"]
+YT_CLIENTS = ["default", "android", "tv"]
 _working_client = "default"
 _working_cookies = []
 
@@ -150,12 +150,7 @@ def all_cookies_arg():
 
 def is_blocked(output):
     low = output.lower()
-    return ("not a bot" in low or 
-            "sign in to confirm" in low or 
-            "confirm you're not a bot" in low or 
-            "403: forbidden" in low or 
-            "http error 403" in low or
-            "unable to download video data" in low)
+    return "not a bot" in low or "sign in to confirm" in low or "confirm you're not a bot" in low
 
 
 @app.route("/favicon.ico")
@@ -713,14 +708,12 @@ def handle_download(data):
                 full_out = "\n".join(output_lines[-40:])
                 last_err = full_out if full_out.strip() else last_err
                 log("Descarga client %s fallo: %s" % (client, last_err[-200:]))
-
-            err_msg = last_err[-200:] if last_err else "Error durante la descarga. Verifica la URL."
-            if is_blocked(last_err):
-                err_msg += " (YouTube esta limitando descargas directas. Intenta con cookies o reinicia la aplicacion)."
+                if not is_blocked(full_out):
+                    break
 
             socketio.emit("download_error", {
                 "download_id": download_id,
-                "error": err_msg,
+                "error": last_err[-200:] or "Error durante la descarga. Verifica la URL.",
             })
         except Exception as e:
             socketio.emit("download_error", {
@@ -759,106 +752,39 @@ def bpmstart_create_separation(file_path, sep_type=40, output_format=1, add_opt1
     api_key = get_user_key()
     if not api_key:
         return False, "No hay codigo BPMStartPRO configurado. Abre Ajustes y agrega tu codigo."
-    
     url = "https://mvsep.com/api/separation/create"
 
-    send_path = file_path
-    temp_path = None
-    try:
-        ext = Path(file_path).suffix.lower()
-        file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-        # MVSEP upload limit is ~50MB. If file is not MP3 or is > 45MB, convert to 320k MP3 for upload.
-        if ext != ".mp3" or file_size_mb > 45:
-            ffmpeg = Path(get_ffmpeg_dir()) / "ffmpeg.exe"
-            temp_path = str(Path(file_path).with_name(Path(file_path).stem + "_upload_temp.mp3"))
-            try:
-                proc = subprocess.run(
-                    [str(ffmpeg), "-y", "-i", str(file_path), "-vn", "-codec:a", "libmp3lame", "-b:a", "320k", temp_path],
-                    capture_output=True, timeout=300, creationflags=subprocess.CREATE_NO_WINDOW
-                )
-            except Exception:
-                return False, "Error al optimizar el audio para BpmStart Pro."
-            if proc.returncode != 0 or not os.path.exists(temp_path):
-                return False, "No se pudo optimizar el audio para BpmStart Pro."
-            send_path = temp_path
-
-        last_error = "Error al crear tarea."
-        max_retries = 15
-
-        for attempt in range(max_retries):
-            with open(send_path, "rb") as f:
-                files = {"audiofile": f}
-                data = {
-                    "api_token": api_key,
-                    "sep_type": str(sep_type),
-                    "output_format": str(output_format),
-                    "is_demo": "0",
-                }
-                if text_prompt:
-                    # For TTS or text prompt-driven models (add_opt1 or add_opt2 text input)
-                    if add_opt1 is None:
-                        data["add_opt1"] = text_prompt
-                    elif add_opt2 is None:
-                        data["add_opt2"] = text_prompt
-                    else:
-                        data["add_opt3"] = text_prompt
-
-                if add_opt1 is not None and "add_opt1" not in data:
-                    data["add_opt1"] = str(add_opt1)
-                if add_opt2 is not None and "add_opt2" not in data:
-                    data["add_opt2"] = str(add_opt2)
-                if add_opt3 is not None and "add_opt3" not in data:
-                    data["add_opt3"] = str(add_opt3)
-
-                try:
-                    resp = requests.post(url, files=files, data=data, timeout=600)
-                except requests.exceptions.Timeout:
-                    last_error = "Tiempo de espera agotado al subir a BpmStart Pro. Intenta de nuevo."
-                    time.sleep(5)
-                    continue
-                except requests.exceptions.RequestException as e:
-                    last_error = f"Error de conexion con BpmStart Pro: {str(e)[:150]}"
-                    time.sleep(5)
-                    continue
-
-            try:
-                result = resp.json()
-            except Exception:
-                result = {}
-
-            if result.get("success"):
-                return True, result["data"]["hash"]
-
-            errors = result.get("errors")
-            if isinstance(errors, list) and errors:
-                msg = errors[0]
-            elif isinstance(errors, str):
-                msg = errors
+    with open(file_path, "rb") as f:
+        files = {"audiofile": f}
+        data = {
+            "api_token": api_key,
+            "sep_type": str(sep_type),
+            "output_format": str(output_format),
+            "is_demo": "0",
+        }
+        if text_prompt:
+            # For TTS or text prompt-driven models (add_opt1 or add_opt2 text input)
+            if add_opt1 is None:
+                data["add_opt1"] = text_prompt
+            elif add_opt2 is None:
+                data["add_opt2"] = text_prompt
             else:
-                msg = result.get("data", {}).get("message") or result.get("message") or result.get("error") or resp.text[:200] or "Error desconocido"
+                data["add_opt3"] = text_prompt
 
-            # Si el servidor responde que ya hay un archivo procesandose en la cola, esperar y reintentar
-            if "queue" in msg.lower() or "unprocessed" in msg.lower() or resp.status_code == 429:
-                last_error = "Hay una tarea anterior aun procesandose en los servidores de BpmStart Pro. Esperando a que termine..."
-                time.sleep(10)
-                continue
+        if add_opt1 is not None and "add_opt1" not in data:
+            data["add_opt1"] = str(add_opt1)
+        if add_opt2 is not None and "add_opt2" not in data:
+            data["add_opt2"] = str(add_opt2)
+        if add_opt3 is not None and "add_opt3" not in data:
+            data["add_opt3"] = str(add_opt3)
+        resp = requests.post(url, data=data, files=files, timeout=120)
 
-            if resp.status_code == 401:
-                time.sleep(5)
-                continue
-
-            if resp.status_code != 200:
-                return False, f"BpmStart Pro respondio HTTP {resp.status_code}: {msg}"
-
-            return False, msg
-
-        return False, "Hay una tarea anterior aun procesandose en el servidor. Por favor espera 1 minuto a que termine e intenta de nuevo."
-    finally:
-        if temp_path and os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
+    result = resp.json()
+    if result.get("success"):
+        return True, result["data"]["hash"]
+    else:
+        msg = result.get("data", {}).get("message", "Error desconocido")
+        return False, msg
 
 
 def bpmstart_get_status(task_hash):
@@ -872,7 +798,7 @@ def mvsep_download_file(url, dest_path):
     resp = requests.get(url, stream=True, timeout=300)
     resp.raise_for_status()
     with open(dest_path, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=65536):
+        for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
 
 
@@ -956,109 +882,6 @@ SPANISH_LABELS = {
 }
 
 
-def get_audio_duration(file_path):
-    ffmpeg = Path(get_ffmpeg_dir()) / "ffmpeg.exe"
-    try:
-        res = subprocess.run(
-            [str(ffmpeg), "-i", str(file_path)],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        match = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res.stderr)
-        if match:
-            hours, mins, secs = match.groups()
-            return int(hours) * 3600 + int(mins) * 60 + float(secs)
-    except Exception as e:
-        log(f"Error calculando duracion: {e}")
-    return 0.0
-
-
-def split_audio_into_chunks(file_path, temp_dir, chunk_duration=570, overlap=3):
-    ffmpeg = Path(get_ffmpeg_dir()) / "ffmpeg.exe"
-    total_sec = get_audio_duration(file_path)
-    if total_sec <= 600 or total_sec == 0:
-        return [{"index": 0, "path": str(file_path), "is_single": True, "start": 0, "duration": total_sec}], total_sec
-
-    chunks = []
-    current_start = 0.0
-    idx = 0
-    os.makedirs(temp_dir, exist_ok=True)
-
-    while current_start < total_sec:
-        cur_dur = min(chunk_duration, total_sec - current_start)
-        # Using 320k MP3 avoids the 50MB payload limit on MVSEP while maintaining full audio quality
-        chunk_file = Path(temp_dir) / f"chunk_input_{idx}.mp3"
-
-        cmd = [
-            str(ffmpeg), "-y",
-            "-ss", f"{current_start:.3f}",
-            "-t", f"{cur_dur:.3f}",
-            "-i", str(file_path),
-            "-vn", "-c:a", "libmp3lame", "-b:a", "320k",
-            str(chunk_file)
-        ]
-        proc = subprocess.run(cmd, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        if proc.returncode != 0 or not chunk_file.exists():
-            raise RuntimeError(f"Error al cortar el bloque {idx + 1} del audio.")
-
-        chunks.append({
-            "index": idx,
-            "path": str(chunk_file),
-            "is_single": False,
-            "start": current_start,
-            "duration": cur_dur
-        })
-        idx += 1
-        current_start += (chunk_duration - overlap)
-        if current_start >= total_sec:
-            break
-
-    return chunks, total_sec
-
-
-def merge_stem_chunks(chunk_paths, output_path, overlap=3, output_format=1):
-    if not chunk_paths:
-        return False
-    if len(chunk_paths) == 1:
-        import shutil
-        shutil.copy2(chunk_paths[0], output_path)
-        return True
-
-    ffmpeg = Path(get_ffmpeg_dir()) / "ffmpeg.exe"
-    inputs = []
-    for p in chunk_paths:
-        inputs.extend(["-i", str(p)])
-
-    # Chain acrossfade filters:
-    # [0:a][1:a]acrossfade=d=3:c1=tri:c2=tri[a1]; [a1][2:a]acrossfade=d=3:c1=tri:c2=tri[a2] ...
-    filter_parts = []
-    last_label = "0:a"
-    for i in range(1, len(chunk_paths)):
-        next_label = f"a{i}" if i < len(chunk_paths) - 1 else "out"
-        filter_parts.append(f"[{last_label}][{i}:a]acrossfade=d={overlap}:c1=tri:c2=tri[{next_label}]")
-        last_label = f"a{i}"
-
-    filter_str = ";".join(filter_parts)
-
-    ext_map = {
-        0: ("libmp3lame", "320k"),
-        1: ("pcm_s16le", None),
-        2: ("flac", None),
-        3: ("aac", "320k"),
-        4: ("pcm_s24le", None),
-        5: ("flac", None)
-    }
-    codec, bitrate = ext_map.get(output_format, ("libmp3lame", "320k"))
-
-    cmd = [str(ffmpeg), "-y"] + inputs + ["-filter_complex", filter_str, "-map", "[out]", "-c:a", codec]
-    if bitrate:
-        cmd.extend(["-b:a", bitrate])
-    cmd.append(str(output_path))
-
-    proc = subprocess.run(cmd, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
-    return proc.returncode == 0 and os.path.exists(output_path)
-
-
 @app.route("/api/categories")
 @login_required
 def api_categories():
@@ -1137,224 +960,200 @@ def handle_separation(data):
     emit("sep_started", {"sep_id": sep_id})
 
     def run_separation():
-        from concurrent.futures import ThreadPoolExecutor
-        temp_chunks_dir = sep_folder / "_temp_chunks"
         try:
-            chunks, total_sec = split_audio_into_chunks(file_path, temp_chunks_dir, chunk_duration=570, overlap=3)
-            num_chunks = len(chunks)
+            socketio.emit("sep_progress", {
+                "sep_id": sep_id,
+                "status": "subiendo",
+                "message": "Subiendo archivo a BpmStart Pro...",
+                "percent": 5,
+            })
 
-            ext_map = {0: "mp3", 1: "wav", 2: "flac", 3: "m4a", 4: "wav", 5: "flac"}
-            file_ext = ext_map.get(output_format, "mp3")
-            is_single_file = labels is None
+            success, result = bpmstart_create_separation(
+                str(file_path),
+                sep_type=sep_type,
+                output_format=output_format,
+                add_opt1=add_opt1,
+                add_opt2=add_opt2,
+                add_opt3=add_opt3,
+                text_prompt=text_prompt,
+            )
 
-            collected_stems = {}
-            stem_metadata = {}
-
-            for chunk_idx, chunk_info in enumerate(chunks):
-                part_prefix = f"Parte {chunk_idx + 1}/{num_chunks}: " if num_chunks > 1 else ""
-                base_pct = int((chunk_idx / num_chunks) * 75)
-                chunk_slice_pct = int(75 / num_chunks)
-
-                socketio.emit("sep_progress", {
+            if not success:
+                socketio.emit("sep_error", {
                     "sep_id": sep_id,
-                    "status": "subiendo",
-                    "message": f"{part_prefix}Subiendo archivo a BpmStart Pro...",
-                    "percent": max(5, base_pct + int(chunk_slice_pct * 0.1)),
+                    "error": f"Error al crear tarea: {result}",
                 })
+                return
 
-                success, result = bpmstart_create_separation(
-                    chunk_info["path"],
-                    sep_type=sep_type,
-                    output_format=output_format,
-                    add_opt1=add_opt1,
-                    add_opt2=add_opt2,
-                    add_opt3=add_opt3,
-                    text_prompt=text_prompt,
-                )
+            task_hash = result
+            active_separations[sep_id]["hash"] = task_hash
 
-                if not success:
+            socketio.emit("sep_progress", {
+                "sep_id": sep_id,
+                "status": "procesando",
+                "message": "Procesando con BpmStart Pro...",
+                "percent": 20,
+            })
+
+            max_wait = 1800
+            elapsed = 0
+            poll_interval = 10
+
+            while elapsed < max_wait:
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+
+                try:
+                    status_resp = bpmstart_get_status(task_hash)
+                except Exception:
+                    continue
+
+                if not status_resp.get("success"):
                     socketio.emit("sep_error", {
                         "sep_id": sep_id,
-                        "error": f"Error al crear tarea ({part_prefix.strip()}): {result}",
+                        "error": "Error consultando estado del job.",
                     })
                     return
 
-                task_hash = result
-                active_separations[sep_id]["hash"] = task_hash
+                status = status_resp.get("status", "")
 
-                socketio.emit("sep_progress", {
-                    "sep_id": sep_id,
-                    "status": "procesando",
-                    "message": f"{part_prefix}Procesando con BpmStart Pro...",
-                    "percent": base_pct + int(chunk_slice_pct * 0.3),
-                })
+                if status == "waiting":
+                    socketio.emit("sep_progress", {
+                        "sep_id": sep_id,
+                        "status": "procesando",
+                        "message": "Procesando con BpmStart Pro...",
+                        "percent": 30,
+                    })
 
-                max_wait = 1800
-                elapsed = 0
-                poll_interval = 10
-                chunk_files_data = None
+                elif status == "processing":
+                    socketio.emit("sep_progress", {
+                        "sep_id": sep_id,
+                        "status": "procesando",
+                        "message": "Procesando con BpmStart Pro...",
+                        "percent": 50,
+                    })
 
-                while elapsed < max_wait:
-                    time.sleep(poll_interval)
-                    elapsed += poll_interval
+                elif status == "distributing":
+                    finished = status_resp.get("data", {}).get("finished_chunks", 0)
+                    total = status_resp.get("data", {}).get("all_chunks", 1)
+                    pct = 30 + int(30 * finished / total) if total else 30
+                    socketio.emit("sep_progress", {
+                        "sep_id": sep_id,
+                        "status": "procesando",
+                        "message": "Procesando con BpmStart Pro...",
+                        "percent": pct,
+                    })
 
-                    try:
-                        status_resp = bpmstart_get_status(task_hash)
-                    except Exception:
-                        continue
+                elif status == "merging":
+                    socketio.emit("sep_progress", {
+                        "sep_id": sep_id,
+                        "status": "procesando",
+                        "message": "Procesando con BpmStart Pro...",
+                        "percent": 65,
+                    })
 
-                    if not status_resp.get("success"):
+                elif status == "done":
+                    files_data = status_resp.get("data", {}).get("files", [])
+                    if not files_data:
                         socketio.emit("sep_error", {
                             "sep_id": sep_id,
-                            "error": f"Error consultando estado ({part_prefix.strip()}).",
+                            "error": "No se encontraron archivos de resultado.",
                         })
                         return
 
-                    status = status_resp.get("status", "")
+                    socketio.emit("sep_progress", {
+                        "sep_id": sep_id,
+                        "status": "descargando",
+                        "message": f"Descargando {len(files_data)} archivos...",
+                        "percent": 75,
+                    })
 
-                    if status in ("waiting", "processing", "distributing", "merging"):
-                        sub_pct = 0.4
-                        if status == "distributing":
-                            finished = status_resp.get("data", {}).get("finished_chunks", 0)
-                            total = status_resp.get("data", {}).get("all_chunks", 1)
-                            sub_pct = 0.3 + (0.4 * finished / total) if total else 0.4
-                        elif status == "merging":
-                            sub_pct = 0.8
+                    sep_folder.mkdir(exist_ok=True)
 
+                    ext_map = {0: "mp3", 1: "wav", 2: "flac", 3: "m4a", 4: "wav", 5: "flac"}
+                    file_ext = ext_map.get(output_format, "mp3")
+
+                    is_single_file = labels is None
+
+                    stems = []
+                    total_files = len(files_data)
+                    for i, file_info in enumerate(files_data):
+                        stem_url = file_info.get("url", "")
+                        if not stem_url:
+                            continue
+
+                        # Detect actual extension from file URL / download name if available
+                        download_name = file_info.get("download", "")
+                        real_url_ext = Path(download_name).suffix.lstrip(".").lower() if download_name else Path(stem_url.split("?")[0]).suffix.lstrip(".").lower()
+                        current_ext = real_url_ext if real_url_ext in ("mid", "midi", "txt", "zip") else file_ext
+                        if category == "midi":
+                            current_ext = "mid"
+
+                        stem_type = file_info.get("type") or ""
+                        label_esp = SPANISH_LABELS.get(stem_type, stem_type)
+
+                        if is_single_file:
+                            stem_name = Path(download_name).stem if download_name else Path(stem_url.split("?")[0]).stem
+                            if stem_name == Path(file_path).stem or not stem_name:
+                                new_name = f"{song_name}_resultado.{current_ext}"
+                            else:
+                                new_name = f"{stem_name}.{current_ext}"
+                            label = stem_name or song_name
+                        else:
+                            if stem_type:
+                                label = label_esp if label_esp else stem_type
+                            else:
+                                url_filename = stem_url.split("?")[0].split("/")[-1]
+                                label = Path(url_filename).stem
+                            new_name = f"{label}.{current_ext}"
+
+                        dest = sep_folder / new_name
+                        try:
+                            mvsep_download_file(stem_url, str(dest))
+                            stems.append({
+                                "filename": f"{folder_name}/{new_name}",
+                                "label": label,
+                                "ext": current_ext,
+                            })
+                        except Exception as e:
+                            print(f"Error descargando stem {label}: {e}")
+
+                        pct = 75 + int(25 * (i + 1) / total_files)
                         socketio.emit("sep_progress", {
                             "sep_id": sep_id,
-                            "status": "procesando",
-                            "message": f"{part_prefix}Procesando con BpmStart Pro...",
-                            "percent": base_pct + int(chunk_slice_pct * sub_pct),
+                            "status": "descargando",
+                            "message": f"Descargando... ({i+1}/{total_files})",
+                            "percent": min(pct, 99),
                         })
 
-                    elif status == "done":
-                        chunk_files_data = status_resp.get("data", {}).get("files", [])
-                        break
+                    original_dest = sep_folder / file_path.name
+                    if not original_dest.exists():
+                        import shutil
+                        shutil.copy2(str(file_path), str(original_dest))
 
-                    elif status == "failed":
-                        error_msg = status_resp.get("data", {}).get("message", "Error desconocido")
-                        socketio.emit("sep_error", {
-                            "sep_id": sep_id,
-                            "error": f"Fallo en la separacion ({part_prefix.strip()}): {error_msg}",
-                        })
-                        return
+                    socketio.emit("sep_complete", {
+                        "sep_id": sep_id,
+                        "folder": folder_name,
+                        "original": f"{folder_name}/{file_path.name}",
+                        "stems": stems,
+                    })
 
-                if not chunk_files_data:
+                    return
+
+                elif status == "failed":
+                    error_msg = status_resp.get("data", {}).get("message", "Error desconocido")
                     socketio.emit("sep_error", {
                         "sep_id": sep_id,
-                        "error": f"No se encontraron archivos de resultado ({part_prefix.strip()}).",
+                        "error": f"Fallo en la separacion: {error_msg}",
                     })
                     return
 
-                chunk_dest_dir = temp_chunks_dir / f"chunk_{chunk_idx}" if num_chunks > 1 else sep_folder
-                chunk_dest_dir.mkdir(parents=True, exist_ok=True)
-
-                socketio.emit("sep_progress", {
-                    "sep_id": sep_id,
-                    "status": "descargando",
-                    "message": f"{part_prefix}Descargando {len(chunk_files_data)} pistas en paralelo...",
-                    "percent": base_pct + int(chunk_slice_pct * 0.85),
-                })
-
-                def download_single_file(file_info):
-                    stem_url = file_info.get("url", "")
-                    if not stem_url:
-                        return None
-
-                    download_name = file_info.get("download", "")
-                    real_url_ext = Path(download_name).suffix.lstrip(".").lower() if download_name else Path(stem_url.split("?")[0]).suffix.lstrip(".").lower()
-                    current_ext = real_url_ext if real_url_ext in ("mid", "midi", "txt", "zip") else file_ext
-                    if category == "midi":
-                        current_ext = "mid"
-
-                    stem_type = file_info.get("type") or ""
-                    label_esp = SPANISH_LABELS.get(stem_type, stem_type)
-
-                    if is_single_file:
-                        stem_name = Path(download_name).stem if download_name else Path(stem_url.split("?")[0]).stem
-                        if stem_name == Path(file_path).stem or not stem_name:
-                            new_name = f"{song_name}_resultado.{current_ext}"
-                        else:
-                            new_name = f"{stem_name}.{current_ext}"
-                        label = stem_name or song_name
-                    else:
-                        if stem_type:
-                            label = label_esp if label_esp else stem_type
-                        else:
-                            url_filename = stem_url.split("?")[0].split("/")[-1]
-                            label = Path(url_filename).stem
-                        new_name = f"{label}.{current_ext}"
-
-                    dest_file = chunk_dest_dir / new_name
-                    mvsep_download_file(stem_url, str(dest_file))
-                    return new_name, dest_file, label, current_ext
-
-                with ThreadPoolExecutor(max_workers=min(len(chunk_files_data), 6)) as executor:
-                    download_results = list(executor.map(download_single_file, chunk_files_data))
-
-                for res in download_results:
-                    if res:
-                        new_name, dest_file, label, current_ext = res
-                        if new_name not in collected_stems:
-                            collected_stems[new_name] = []
-                            stem_metadata[new_name] = {"label": label, "ext": current_ext}
-                        collected_stems[new_name].append(dest_file)
-
-            sep_folder.mkdir(exist_ok=True)
-            stems = []
-
-            if num_chunks > 1:
-                socketio.emit("sep_progress", {
-                    "sep_id": sep_id,
-                    "status": "procesando",
-                    "message": "Fusión perfecta de pistas de audio (Crossfade)...",
-                    "percent": 85,
-                })
-
-                for new_name, chunk_file_list in collected_stems.items():
-                    final_dest = sep_folder / new_name
-                    meta = stem_metadata[new_name]
-                    if meta["ext"] in ("mid", "midi", "txt", "zip"):
-                        import shutil
-                        shutil.copy2(str(chunk_file_list[0]), str(final_dest))
-                    else:
-                        merge_stem_chunks(chunk_file_list, final_dest, overlap=3, output_format=output_format)
-
-                    stems.append({
-                        "filename": f"{folder_name}/{new_name}",
-                        "label": meta["label"],
-                        "ext": meta["ext"],
-                    })
-            else:
-                for new_name in collected_stems:
-                    meta = stem_metadata[new_name]
-                    stems.append({
-                        "filename": f"{folder_name}/{new_name}",
-                        "label": meta["label"],
-                        "ext": meta["ext"],
-                    })
-
-            original_dest = sep_folder / file_path.name
-            if not original_dest.exists():
-                import shutil
-                shutil.copy2(str(file_path), str(original_dest))
-
-            if temp_chunks_dir.exists():
-                import shutil
-                shutil.rmtree(str(temp_chunks_dir), ignore_errors=True)
-
-            socketio.emit("sep_complete", {
+            socketio.emit("sep_error", {
                 "sep_id": sep_id,
-                "folder": folder_name,
-                "original": f"{folder_name}/{file_path.name}",
-                "stems": stems,
+                "error": "Tiempo de espera agotado (30 min).",
             })
 
         except Exception as e:
-            if temp_chunks_dir.exists():
-                import shutil
-                shutil.rmtree(str(temp_chunks_dir), ignore_errors=True)
             socketio.emit("sep_error", {
                 "sep_id": sep_id,
                 "error": f"Error inesperado: {str(e)[:200]}",

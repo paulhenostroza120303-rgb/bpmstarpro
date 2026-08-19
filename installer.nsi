@@ -18,11 +18,11 @@ Unicode True
 ; --------------------
 ; Version Info
 ; --------------------
-VIProductVersion "1.0.2.0"
+VIProductVersion "1.0.0.0"
 VIAddVersionKey "ProductName" "BPMStart Pro"
 VIAddVersionKey "FileDescription" "BPMStart Pro - Descarga y separa musica"
 VIAddVersionKey "LegalCopyright" "BPMStart"
-VIAddVersionKey "FileVersion" "1.0.2"
+VIAddVersionKey "FileVersion" "1.0.0"
 
 ; --------------------
 ; MUI Settings
@@ -41,7 +41,7 @@ VIAddVersionKey "FileVersion" "1.0.2"
 ; Pages
 ; --------------------
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_COMPONENTS
+!insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -57,24 +57,23 @@ VIAddVersionKey "FileVersion" "1.0.2"
 ; --------------------
 ; Installer Sections
 ; --------------------
-Section "BPMStart Pro (Requerido)" SecMain
-    SectionIn RO
-
-    ; Output path is installation directory
+Section "BPMStart Pro (Principal)" SecMain
     SetOutPath "$INSTDIR"
 
-    ; Copy application files from PyInstaller dist
-    File /r "dist\BPMStartPro\*.*"
+    ; Main executable
+    File "dist\BPMStartPro\BPMStartPro.exe"
+
+    ; All internal files (maintain _internal folder structure)
+    SetOutPath "$INSTDIR\_internal"
+    File /r "dist\BPMStartPro\_internal\*.*"
+
+    ; Store install dir
+    WriteRegStr HKCU "Software\BPMStartPro" "InstallDir" "$INSTDIR"
 
     ; Create uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 
-    ; Start Menu Shortcut
-    CreateDirectory "$SMPROGRAMS\BPMStart Pro"
-    CreateShortcut "$SMPROGRAMS\BPMStart Pro\BPMStart Pro.lnk" "$INSTDIR\BPMStartPro.exe"
-    CreateShortcut "$SMPROGRAMS\BPMStart Pro\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
-
-    ; Registry keys for Add/Remove Programs
+    ; Add to Programs list
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
         "DisplayName" "BPMStart Pro"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
@@ -86,7 +85,7 @@ Section "BPMStart Pro (Requerido)" SecMain
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
         "Publisher" "BPMStart"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
-        "DisplayVersion" "1.0.2"
+        "DisplayVersion" "1.0.0"
 
     ; Get installed size
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
