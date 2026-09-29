@@ -18,6 +18,8 @@ dist/
 bin/
 *.spec
 BPMStartPro_Setup.exe
+*.zip
+ffmpeg_build/
 
 # Editors / OS
 .vscode/

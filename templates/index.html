@@ -60,6 +60,19 @@
                 </svg>
                 Separar
             </button>
+            <button class="tab" data-tab="midi">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+                MIDI Pro
+            </button>
+            <button class="tab" data-tab="pitch">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3v18"/><path d="M6 8v8"/><path d="M18 8v8"/>
+                    <path d="M3 11v2"/><path d="M21 11v2"/>
+                </svg>
+                Tonalidad
+            </button>
         </div>
 
         <!-- ======================== TAB: DESCARGAR ======================== -->
@@ -126,15 +139,18 @@
                         <div class="quality-grid">
                             <button class="quality-btn active" data-quality="best">
                                 <span class="q-icon">HQ</span>
-                                <span>Alta</span>
+                                <span class="q-label">Alta</span>
+                                <small class="q-sub">320 kbps</small>
                             </button>
                             <button class="quality-btn" data-quality="medium">
                                 <span class="q-icon">MQ</span>
-                                <span>Media</span>
+                                <span class="q-label">Media</span>
+                                <small class="q-sub">192 kbps</small>
                             </button>
                             <button class="quality-btn" data-quality="low">
                                 <span class="q-icon">LQ</span>
-                                <span>Baja</span>
+                                <span class="q-label">Baja</span>
+                                <small class="q-sub">128 kbps</small>
                             </button>
                         </div>
 
@@ -272,15 +288,103 @@
                 </div>
 
                 <div id="sep-progress-section" class="hidden">
-                    <div class="progress-container">
-                        <div class="progress-header">
-                            <span id="sep-progress-status">Procesando...</span>
-                            <span id="sep-progress-percent">0%</span>
+                    <div class="bpm-stage-card">
+                        <!-- Top Audio Stem Branching Animation (SVG) -->
+                        <div class="bpm-branch-wrap">
+                            <svg class="bpm-branch-svg" viewBox="0 0 340 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Main Trunk Line -->
+                                <path id="bpm-svg-trunk" class="bpm-svg-line trunk" d="M 40 45 L 140 45" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+                                <!-- 4 Stems Branching Out -->
+                                <path id="bpm-svg-b1" class="bpm-svg-line branch" d="M 140 45 C 175 45, 185 16, 225 16 L 300 16" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+                                <path id="bpm-svg-b2" class="bpm-svg-line branch" d="M 140 45 C 175 45, 185 35, 225 35 L 300 35" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+                                <path id="bpm-svg-b3" class="bpm-svg-line branch" d="M 140 45 C 175 45, 185 55, 225 55 L 300 55" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+                                <path id="bpm-svg-b4" class="bpm-svg-line branch" d="M 140 45 C 175 45, 185 74, 225 74 L 300 74" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+                                <!-- Junction Node -->
+                                <circle id="bpm-svg-node" cx="140" cy="45" r="5" fill="#38bdf8"/>
+                                <circle id="bpm-svg-glow" cx="140" cy="45" r="10" fill="rgba(56, 189, 248, 0.3)"/>
+                            </svg>
                         </div>
-                        <div class="progress-bar-bg">
-                            <div id="sep-progress-bar" class="progress-bar-fill sep-bar"></div>
+
+                        <!-- Stepper with 4 phases -->
+                        <div class="bpm-stepper">
+                            <div class="bpm-step" id="step-preparar">
+                                <span class="bpm-step-name">PREPARAR</span>
+                                <div class="bpm-step-line"></div>
+                            </div>
+                            <div class="bpm-step" id="step-fila">
+                                <span class="bpm-step-name">FILA</span>
+                                <div class="bpm-step-line"></div>
+                            </div>
+                            <div class="bpm-step" id="step-separar">
+                                <span class="bpm-step-name">SEPARAR</span>
+                                <div class="bpm-step-line"></div>
+                            </div>
+                            <div class="bpm-step" id="step-unir">
+                                <span class="bpm-step-name">UNIR</span>
+                                <div class="bpm-step-line"></div>
+                            </div>
                         </div>
-                        <p id="sep-progress-message" class="sep-progress-msg">Iniciando...</p>
+
+                        <!-- Main dynamic display area -->
+                        <div class="bpm-stage-content">
+                            <!-- Stage: PREPARAR -->
+                            <div class="bpm-phase-box" id="phase-preparar">
+                                <h3 class="bpm-phase-headline">Preparando y subiendo archivo</h3>
+                                <p class="bpm-phase-msg" id="sep-preparar-detail">Subiendo archivo a servidores de BPMStart Pro...</p>
+                            </div>
+
+                            <!-- Stage: FILA -->
+                            <div class="bpm-phase-box hidden" id="phase-fila">
+                                <div class="bpm-queue-caption">TIEMPO DE ESPERA ESTIMADO:</div>
+                                <div class="bpm-countdown" id="bpm-countdown">1:40</div>
+                                <div class="bpm-queue-order" id="bpm-queue-order">Número 0 de 51 en la cola</div>
+                            </div>
+
+                            <!-- Stage: SEPARAR -->
+                            <div class="bpm-phase-box hidden" id="phase-separar">
+                                <h3 class="bpm-phase-headline">Separando tu audio ahora mismo</h3>
+                                <p class="bpm-phase-msg" id="sep-separar-detail">Procesando con algoritmos de BPMStart Pro...</p>
+                            </div>
+
+                            <!-- Stage: UNIR -->
+                            <div class="bpm-phase-box hidden" id="phase-unir">
+                                <h3 class="bpm-phase-headline">Uniendo y optimizando pistas</h3>
+                                <p class="bpm-phase-msg" id="sep-unir-detail">Generando stems limpios sin pérdidas...</p>
+                            </div>
+
+                            <!-- Subtext notice -->
+                            <p class="bpm-phase-subtext">
+                                Puedes cerrar o minimizar esta pestaña; el procesamiento continuará sin que tengas que permanecer aquí.
+                            </p>
+
+                            <!-- Modern Progress Bar -->
+                            <div class="bpm-progress-track">
+                                <div id="sep-progress-bar" class="bpm-progress-bar"></div>
+                            </div>
+                            <div class="bpm-progress-meta">
+                                <span id="sep-progress-status">Procesando...</span>
+                                <span id="sep-progress-percent">0%</span>
+                            </div>
+                            <p id="sep-progress-message" class="hidden"></p>
+                        </div>
+
+                        <!-- Action buttons: sound toggle & cancel -->
+                        <div class="bpm-stage-actions">
+                            <button type="button" class="bpm-pill-action" id="btn-sound-toggle">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                </svg>
+                                <span id="sound-btn-label">Reproducir un sonido cuando esté listo</span>
+                            </button>
+                            <button type="button" class="bpm-cancel-action" id="btn-cancel-sep">
+                                Cancelar trabajo
+                            </button>
+                        </div>
+
+                        <div class="bpm-stage-footer">
+                            Procesamiento acelerado con BPMStart Pro
+                        </div>
                     </div>
                 </div>
 
@@ -296,6 +400,373 @@
                         <div class="stems-grid" id="stems-grid"></div>
 
                         <button id="new-separation-btn" class="btn-secondary" style="margin-top:20px">Nueva separacion</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== TAB: MIDI PRO ======================== -->
+        <div class="tab-content" id="tab-midi">
+            <div class="card">
+                <div id="midi-input-section">
+                    <!-- Source Selector: YouTube vs Local Audio -->
+                    <div class="midi-source-toggle">
+                        <button class="source-toggle-btn active" id="midi-source-yt-btn" data-source="yt">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                            <span>Desde YouTube</span>
+                        </button>
+                        <button class="source-toggle-btn" id="midi-source-file-btn" data-source="file">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <span>Archivo de Audio Local</span>
+                        </button>
+                    </div>
+
+                    <!-- YouTube input area -->
+                    <div id="midi-yt-area" class="midi-input-area">
+                        <div class="input-group">
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                </svg>
+                                <input type="text" id="midi-url-input" placeholder="Pega el enlace de YouTube aqui..." autocomplete="off" spellcheck="false">
+                                <button id="midi-paste-btn" class="icon-btn" title="Pegar">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Local file upload area -->
+                    <div id="midi-file-area" class="midi-input-area hidden">
+                        <div class="upload-zone" id="midi-upload-zone">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-icon">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p class="upload-text">Arrastra tu cancion aqui</p>
+                            <p class="upload-sub">o haz clic para seleccionar archivo</p>
+                            <p class="upload-formats">MP3, WAV, FLAC, M4A, OGG</p>
+                            <input type="file" id="midi-file-input" accept=".mp3,.flac,.wav,.m4a,.ogg,.aac,.wma" hidden>
+                        </div>
+                        <div id="midi-file-selected" class="file-selected hidden">
+                            <div class="file-info">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                                </svg>
+                                <div>
+                                    <p id="midi-selected-filename"></p>
+                                    <small id="midi-selected-filesize"></small>
+                                </div>
+                            </div>
+                            <button id="midi-remove-file-btn" class="icon-btn" title="Quitar">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Mode Selector -->
+                    <div class="midi-options-section">
+                        <h4>Modo de Procesamiento MIDI</h4>
+                        <div class="midi-mode-grid">
+                            <div class="midi-mode-card active" data-mode="multitrack_7">
+                                <div class="mode-badge">Recomendado</div>
+                                <div class="mode-header">
+                                    <span class="mode-icon">🌟</span>
+                                    <strong>Multitrack Pro (7 Pistas)</strong>
+                                </div>
+                                <p class="mode-desc">Bateria (GM Canal 10 con Kicks, Caja, HH), Bajo, Pianos, Guitarras, Melodia y Sintes separados con BpmStart Pro.</p>
+                            </div>
+
+                            <div class="midi-mode-card" data-mode="drums_only">
+                                <div class="mode-header">
+                                    <span class="mode-icon">🥁</span>
+                                    <strong>Bateria y Percusion GM</strong>
+                                </div>
+                                <p class="mode-desc">Mapeo detallado de Kicks (C1), Snare (D1), Hi-Hats (F#1/A#1), Toms, Crash y Ride (Canal 10).</p>
+                            </div>
+
+                            <div class="midi-mode-card" data-mode="vocal_4">
+                                <div class="mode-header">
+                                    <span class="mode-icon">🎵</span>
+                                    <strong>4 Pistas Esenciales</strong>
+                                </div>
+                                <p class="mode-desc">Vocales, Bajo, Bateria y Acompañamiento rapido (Demucs 4HT).</p>
+                            </div>
+                        </div>
+
+                        <!-- BPM Settings -->
+                        <div class="midi-bpm-control">
+                            <div class="bpm-label-row">
+                                <label for="midi-custom-bpm"><strong>Deteccion de BPM:</strong></label>
+                                <span class="badge badge-auto" id="bpm-mode-badge">Auto (Detectar con IA)</span>
+                            </div>
+                            <div class="bpm-input-row">
+                                <input type="number" id="midi-custom-bpm" placeholder="Auto" min="30" max="300" step="0.1">
+                                <button type="button" class="btn-sm" id="midi-bpm-auto-btn" title="Restablecer a deteccion automatica">Auto</button>
+                                <button type="button" class="btn-sm" id="midi-bpm-half-btn" title="Dividir /2">/ 2</button>
+                                <button type="button" class="btn-sm" id="midi-bpm-double-btn" title="Multiplicar x2">x 2</button>
+                            </div>
+                        </div>
+
+                        <div class="model-info" style="margin-top:16px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>Genera un archivo <strong>.MID Formato 1</strong> compatible con <strong>FL Studio, Ableton Live, Logic, Studio One, Reaper</strong> y mas.</span>
+                        </div>
+
+                        <button id="start-midi-btn" class="btn-download btn-midi-pulse">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                            </svg>
+                            <span>Convertir a MIDI Multitrack Completo</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="midi-progress-section" class="hidden">
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span id="midi-progress-status">Procesando...</span>
+                            <span id="midi-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="midi-progress-bar" class="progress-bar-fill midi-bar"></div>
+                        </div>
+                        <p id="midi-progress-message" class="sep-progress-msg">Iniciando pipeline MIDI...</p>
+                        
+                        <!-- Pipeline Steps Visualizer -->
+                        <div class="pipeline-steps">
+                            <div class="p-step" id="p-step-1">1. Audio / Descarga</div>
+                            <div class="p-step" id="p-step-2">2. Deteccion BPM</div>
+                            <div class="p-step" id="p-step-3">3. Separacion BpmStart Pro</div>
+                            <div class="p-step" id="p-step-4">4. Transcripcion MIDI</div>
+                            <div class="p-step" id="p-step-5">5. Ensamblado Master</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Complete / Results Section -->
+                <div id="midi-complete-section" class="hidden">
+                    <div class="midi-results-card">
+                        <div class="results-header">
+                            <div>
+                                <h3 id="midi-song-title">Cancion Multitrack</h3>
+                                <div class="results-meta-badges">
+                                    <span class="badge badge-bpm" id="midi-bpm-display">BPM: 128.00</span>
+                                    <span class="badge badge-notes" id="midi-notes-display">0 notas</span>
+                                    <span class="badge badge-type">MIDI Format 1 (Multi-Track)</span>
+                                </div>
+                            </div>
+                            <button id="new-midi-btn" class="btn-secondary">Nuevo proyecto</button>
+                        </div>
+
+                        <!-- Master Quick Action Banner (Drag & Drop to DAW) -->
+                        <div class="daw-drop-banner">
+                            <div class="daw-drag-wrapper">
+                                <a id="midi-daw-draggable" class="daw-drag-btn" href="#" draggable="true" title="Arrastra directamente a FL Studio, Ableton o tu carpeta de Windows">
+                                    <div class="drag-icon">🎹</div>
+                                    <div class="drag-text">
+                                        <strong>ARRASTRAR MASTER MIDI AL DAW</strong>
+                                        <small>Arrastra este boton directo a FL Studio, Ableton Live o Reaper</small>
+                                    </div>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+                                    </svg>
+                                </a>
+                            </div>
+
+                            <div class="daw-action-buttons">
+                                <a id="midi-download-master-btn" class="btn-primary" href="#" download>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    <span>Descargar Master .MID</span>
+                                </a>
+
+                                <a id="midi-download-zip-btn" class="btn-secondary" href="#" download>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                    </svg>
+                                    <span>Descargar Pack (.ZIP)</span>
+                                </a>
+
+                                <button id="midi-open-folder-btn" class="btn-secondary" title="Abrir carpeta en Windows">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    <span>Abrir Carpeta</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Piano Roll Studio Viewer -->
+                        <div class="piano-roll-container">
+                            <div class="piano-roll-header">
+                                <div class="pr-title-group">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+                                        <line x1="9" y1="21" x2="9" y2="9"/>
+                                    </svg>
+                                    <strong>Visualizador Piano Roll de Notas</strong>
+                                </div>
+                                <div class="pr-track-selector" id="pr-track-selector">
+                                    <!-- Dynamic Track Filter Pills -->
+                                </div>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="piano-roll-canvas" width="800" height="220"></canvas>
+                            </div>
+                            <div class="piano-roll-footer">
+                                <span id="pr-legend">Mostrando notas en el tiempo</span>
+                                <span id="pr-note-stats">0 notas</span>
+                            </div>
+                        </div>
+
+                        <!-- Individual Track Stems -->
+                        <h4 style="margin:24px 0 12px 0;">Pistas e Instrumentos Individuales</h4>
+                        <div class="midi-tracks-grid" id="midi-tracks-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================== TAB: TONALIDAD ======================== -->
+        <div class="tab-content" id="tab-pitch">
+            <div class="card">
+                <div id="pitch-input-section">
+                    <div class="upload-zone" id="pitch-upload-zone">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="upload-icon">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Arrastra tu cancion aqui</p>
+                        <p class="upload-sub">o haz clic para seleccionar archivo</p>
+                        <p class="upload-formats">MP3, WAV, FLAC, M4A, OGG</p>
+                        <input type="file" id="pitch-file-input" accept=".mp3,.flac,.wav,.m4a,.ogg,.aac,.wma" hidden>
+                    </div>
+
+                    <div id="pitch-file-selected" class="file-selected hidden">
+                        <div class="file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2">
+                                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                            </svg>
+                            <div>
+                                <p id="pitch-selected-filename"></p>
+                                <small id="pitch-selected-filesize"></small>
+                            </div>
+                        </div>
+                        <button id="pitch-remove-file-btn" class="icon-btn" title="Quitar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="pitch-display">
+                        <span class="pitch-display-label">Cambio de tono</span>
+                        <div class="pitch-value" id="pitch-value">ORIGINAL (0.0)</div>
+                        <div class="pitch-desc" id="pitch-desc">Tonalidad original de la cancion (sin cambios)</div>
+                    </div>
+
+                    <div class="pitch-steps">
+                        <button class="pitch-step" data-delta="-2">-2</button>
+                        <button class="pitch-step" data-delta="-1">-1</button>
+                        <button class="pitch-reset" id="pitch-reset-btn">Restablecer</button>
+                        <button class="pitch-step" data-delta="1">+1</button>
+                        <button class="pitch-step" data-delta="2">+2</button>
+                    </div>
+
+                    <div class="pitch-steps pitch-steps-micro">
+                        <button class="pitch-step micro" data-delta="-0.5">-0.5</button>
+                        <button class="pitch-step micro" data-delta="-0.1">-0.1</button>
+                        <button class="pitch-step micro" data-delta="0.1">+0.1</button>
+                        <button class="pitch-step micro" data-delta="0.5">+0.5</button>
+                    </div>
+
+                    <input type="range" id="pitch-slider" class="pitch-slider" min="-12" max="12" step="0.1" value="0">
+                    <div class="pitch-scale"><span>-12</span><span>0</span><span>+12</span></div>
+
+                    <h4>Velocidad</h4>
+                    <div class="pitch-display pitch-display-sm">
+                        <div class="pitch-value" id="speed-value">1.00x</div>
+                        <div class="pitch-desc" id="speed-desc">Velocidad original</div>
+                    </div>
+                    <input type="range" id="speed-slider" class="pitch-slider" min="0.5" max="2" step="0.01" value="1">
+                    <div class="pitch-scale"><span>0.5x</span><span>1x</span><span>2x</span></div>
+
+                    <div class="pitch-preview" id="pitch-preview-box">
+                        <button id="pitch-listen-btn" class="pitch-listen" disabled>
+                            <svg id="pitch-listen-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                <polygon points="6 4 20 12 6 20 6 4"/>
+                            </svg>
+                            <span id="pitch-listen-text">Escuchar con este tono</span>
+                        </button>
+                        <p class="pitch-preview-hint" id="pitch-preview-hint">Reproduce un fragmento con el tono aplicado, tal como quedara al exportar.</p>
+                        <audio id="pitch-audio" preload="none"></audio>
+                    </div>
+
+                    <h4>Formato de salida</h4>
+                    <div class="format-grid sep-format-grid">
+                        <button class="format-btn pitch-fmt active" data-fmt="mp3"><span>MP3</span><small>320 kbps</small></button>
+                        <button class="format-btn pitch-fmt" data-fmt="wav"><span>WAV</span><small>16 bit</small></button>
+                        <button class="format-btn pitch-fmt" data-fmt="flac"><span>FLAC</span><small>sin perdida</small></button>
+                    </div>
+
+                    <button id="pitch-export-btn" class="btn-download" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <span>Exportar con nueva tonalidad</span>
+                    </button>
+                </div>
+
+                <div id="pitch-progress-section" class="hidden">
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span id="pitch-progress-status">Procesando...</span>
+                            <span id="pitch-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="pitch-progress-bar" class="progress-bar-fill"></div>
+                        </div>
+                        <p id="pitch-progress-message" class="sep-progress-msg">Aplicando cambio de tonalidad...</p>
+                    </div>
+                </div>
+
+                <div id="pitch-complete-section" class="hidden">
+                    <div class="complete-msg">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="16 8 10.5 13.5 8 11"/>
+                        </svg>
+                        <h3>Tonalidad aplicada</h3>
+                        <p id="pitch-complete-msg"></p>
+                        <button id="pitch-save-btn" class="btn-download" style="margin-top:16px">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            <span>Guardar archivo</span>
+                        </button>
+                        <button id="pitch-new-btn" class="btn-secondary" style="margin-top:12px">Nueva tonalidad</button>
                     </div>
                 </div>
             </div>

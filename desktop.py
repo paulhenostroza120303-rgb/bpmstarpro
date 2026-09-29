@@ -89,7 +89,23 @@ def unblock_directory(root):
 
 def start_flask():
     try:
-        from app import app, socketio
+        base = get_base_dir()
+        app_disk_path = os.path.join(base, "app.py")
+        if not os.path.exists(app_disk_path):
+            app_disk_path = os.path.join(os.path.dirname(sys.executable), "_internal", "app.py")
+
+        if os.path.exists(app_disk_path):
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("app", app_disk_path)
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules["app"] = mod
+            spec.loader.exec_module(mod)
+            app = mod.app
+            socketio = mod.socketio
+            log("Modulo app cargado dinamicamente desde %s" % app_disk_path)
+        else:
+            from app import app, socketio
+
         log("Arrancando servidor Flask en puerto %s" % PORT)
         socketio.run(app, host="127.0.0.1", port=PORT, debug=False,
                      allow_unsafe_werkzeug=True, use_reloader=False)
@@ -302,16 +318,25 @@ class Api:
         try:
             import webview
             from urllib.parse import unquote
-            from app import SEPARATIONS_DIR, DOWNLOADS_DIR
+            from app import SEPARATIONS_DIR, DOWNLOADS_DIR, MIDI_PROJECTS_DIR, PITCH_DIR
 
             server_path = unquote(server_path)
 
-            if server_path.startswith("/download_stem/"):
+            if server_path.startswith("/download_pitch/"):
+                relative = server_path[len("/download_pitch/"):]
+                full_path = PITCH_DIR / relative
+            elif server_path.startswith("/download_stem/"):
                 relative = server_path[len("/download_stem/"):]
                 full_path = SEPARATIONS_DIR / relative
             elif server_path.startswith("/download_file/"):
                 relative = server_path[len("/download_file/"):]
                 full_path = DOWNLOADS_DIR / relative
+            elif server_path.startswith("/download_midi/"):
+                relative = server_path[len("/download_midi/"):]
+                full_path = MIDI_PROJECTS_DIR / relative
+            elif server_path.startswith("/download_midi_zip/"):
+                relative = server_path[len("/download_midi_zip/"):]
+                full_path = MIDI_PROJECTS_DIR / (relative + ".zip")
             else:
                 return {"error": "Ruta no valida"}
 
@@ -324,6 +349,8 @@ class Api:
                 file_types = ("Video (*.mp4;*.mkv;*.avi)",)
             elif ext in (".mid", ".midi"):
                 file_types = ("Archivos MIDI (*.mid;*.midi)", "Todos los archivos (*.*)")
+            elif ext == ".zip":
+                file_types = ("Archivos ZIP (*.zip)", "Todos los archivos (*.*)")
             else:
                 file_types = ("Audio (*.mp3;*.wav;*.flac;*.m4a;*.ogg;*.aac)", "Todos los archivos (*.*)")
 
@@ -339,6 +366,29 @@ class Api:
             save_path = result if isinstance(result, str) else result[0]
             shutil.copy2(str(full_path), save_path)
             return {"ok": True, "path": save_path}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def open_folder(self, server_path):
+        try:
+            from urllib.parse import unquote
+            from app import SEPARATIONS_DIR, DOWNLOADS_DIR, MIDI_PROJECTS_DIR
+            import subprocess
+
+            server_path = unquote(server_path)
+            if server_path.startswith("/download_midi/"):
+                relative = server_path[len("/download_midi/"):]
+                full_path = MIDI_PROJECTS_DIR / relative
+            elif server_path.startswith("/download_stem/"):
+                relative = server_path[len("/download_stem/"):]
+                full_path = SEPARATIONS_DIR / relative
+            else:
+                full_path = MIDI_PROJECTS_DIR
+
+            if full_path.exists():
+                subprocess.Popen(f'explorer /select,"{str(full_path)}"')
+                return {"ok": True}
+            return {"error": "Ruta no encontrada"}
         except Exception as e:
             return {"error": str(e)}
 
@@ -456,7 +506,10 @@ def main():
     flask_thread = threading.Thread(target=start_flask, daemon=True)
     flask_thread.start()
 
-    if not wait_for_flask(timeout=20):
+    # Margen amplio: en equipos lentos el arranque puede tardar bastante, y si
+    # la ventana abre antes de que el servidor responda el usuario ve
+    # "127.0.0.1 rechazo la conexion".
+    if not wait_for_flask(timeout=90):
         log("El servidor tardo en responder, la ventana intentara recargar")
     else:
         log("Servidor listo")

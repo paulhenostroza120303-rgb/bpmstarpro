@@ -18,11 +18,11 @@ Unicode True
 ; --------------------
 ; Version Info
 ; --------------------
-VIProductVersion "2.0.0.0"
+VIProductVersion "2.2.6.0"
 VIAddVersionKey "ProductName" "BPMStart Pro"
 VIAddVersionKey "FileDescription" "BPMStart Pro - Descarga y separa musica"
 VIAddVersionKey "LegalCopyright" "BPMStart"
-VIAddVersionKey "FileVersion" "2.0.0"
+VIAddVersionKey "FileVersion" "2.2.6"
 
 ; --------------------
 ; MUI Settings
@@ -58,7 +58,47 @@ VIAddVersionKey "FileVersion" "2.0.0"
 ; Installer Sections
 ; --------------------
 Section "BPMStart Pro (Principal)" SecMain
+    DetailPrint "Cerrando instancias previas de BPMStart Pro..."
+    nsExec::Exec 'taskkill /F /IM BPMStartPro.exe /T'
+    Sleep 800
+
     SetOutPath "$INSTDIR"
+
+    ; Limpieza de restos de instaladores viejos (antes de v2.0.0 se copiaba una
+    ; estructura plana sin carpeta _internal). Esos archivos sueltos quedaban
+    ; huerfanos tras instalar una version nueva encima, y Windows los cargaba
+    ; primero (busca en la carpeta del .exe antes que en _internal), haciendo
+    ; que fixes nuevos parecieran no aplicarse nunca aunque se reinstalara.
+    ; Los datos del usuario (.bpmstart_key, .bpmstart_auth, downloads,
+    ; separations, webview_data*) NO se tocan.
+    Delete "$INSTDIR\VCRUNTIME140.dll"
+    Delete "$INSTDIR\libcrypto-1_1.dll"
+    Delete "$INSTDIR\libssl-1_1.dll"
+    Delete "$INSTDIR\libffi-7.dll"
+    Delete "$INSTDIR\python310.dll"
+    Delete "$INSTDIR\base_library.zip"
+    Delete "$INSTDIR\binaries.py"
+    Delete "$INSTDIR\update_setup.exe"
+    Delete "$INSTDIR\*.pyd"
+    RMDir /r "$INSTDIR\bin"
+    RMDir /r "$INSTDIR\static"
+    RMDir /r "$INSTDIR\templates"
+    RMDir /r "$INSTDIR\certifi"
+    RMDir /r "$INSTDIR\charset_normalizer"
+    RMDir /r "$INSTDIR\clr_loader"
+    RMDir /r "$INSTDIR\markupsafe"
+    RMDir /r "$INSTDIR\pythonnet"
+    RMDir /r "$INSTDIR\setuptools"
+    RMDir /r "$INSTDIR\webview"
+    RMDir /r "$INSTDIR\click-8.4.2.dist-info"
+    RMDir /r "$INSTDIR\flask-3.1.3.dist-info"
+    RMDir /r "$INSTDIR\itsdangerous-2.2.0.dist-info"
+    RMDir /r "$INSTDIR\markupsafe-3.0.3.dist-info"
+    RMDir /r "$INSTDIR\werkzeug-3.1.8.dist-info"
+    ; _internal se regenera 100% en cada instalacion (File /r mas abajo), asi
+    ; que borrarlo entero primero evita mezclar dlls/pyd huerfanos de
+    ; compilaciones anteriores con los nuevos.
+    RMDir /r "$INSTDIR\_internal"
 
     ; Main executable
     File "dist\BPMStartPro\BPMStartPro.exe"
@@ -85,7 +125,7 @@ Section "BPMStart Pro (Principal)" SecMain
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
         "Publisher" "BPMStart"
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\BPMStartPro" \
-        "DisplayVersion" "2.0.0"
+        "DisplayVersion" "2.2.6"
 
     ; Get installed size
     ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2

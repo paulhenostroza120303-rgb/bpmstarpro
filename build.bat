@@ -34,6 +34,16 @@ pyinstaller --clean --onedir --noconsole ^
     --add-data "static;static" ^
     --add-data "app.py;." ^
     --add-data "binaries.py;." ^
+    --add-data "midi_engine.py;." ^
+    --collect-all basic_pitch ^
+    --collect-all onnxruntime ^
+    --collect-all librosa ^
+    --collect-all soundfile ^
+    --collect-all lazy_loader ^
+    --collect-submodules numba ^
+    --collect-submodules llvmlite ^
+    --hidden-import mido.backends.rtmidi ^
+    --hidden-import scipy.special ^
     --hidden-import webview ^
     --hidden-import webview.platforms ^
     --hidden-import webview.platforms.edgechromium ^
@@ -50,6 +60,19 @@ pyinstaller --clean --onedir --noconsole ^
     --exclude-module gevent ^
     --exclude-module PyQt5 ^
     --exclude-module PyQtWebEngine ^
+    --exclude-module torch ^
+    --exclude-module torchaudio ^
+    --exclude-module torchvision ^
+    --exclude-module transformers ^
+    --exclude-module tensorflow ^
+    --exclude-module faiss ^
+    --exclude-module av ^
+    --exclude-module matplotlib ^
+    --exclude-module PIL ^
+    --exclude-module sklearn ^
+    --exclude-module IPython ^
+    --exclude-module notebook ^
+    --exclude-module pytest ^
     --name "BPMStartPro" ^
     desktop.py
 

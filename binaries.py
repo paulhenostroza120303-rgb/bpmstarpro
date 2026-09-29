@@ -25,6 +25,14 @@ def get_ytdlp_path():
 
 
 def get_js_runtime_arg():
+    # YouTube exige resolver un desafio de JavaScript para entregar los formatos
+    # DASH de alta resolucion. Sin ningun runtime JS, yt-dlp solo consigue el
+    # progresivo viejo de 360p (formato 18) y da 403 en el resto: por eso en PCs
+    # sin Node.js instalado los videos salian en mala calidad.
+    # QuickJS pesa ~2 MB y va empaquetado, asi el programa es autosuficiente.
+    qjs = BIN_DIR / "qjs.exe"
+    if qjs.exists():
+        return ["--js-runtimes", "quickjs:%s" % qjs]
     bundled = BIN_DIR / "node.exe"
     if bundled.exists():
         return ["--js-runtimes", "node:%s" % bundled]
